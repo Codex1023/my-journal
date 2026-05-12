@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Journal">
+<meta name="theme-color" content="#0a0a0f">
+<title>My Journal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131e;
+    --surface2: #1c1c2a;
+    --border: rgba(255,255,255,0.07);
+    --accent: #7c6af5;
+    --accent2: #c084fc;
+    --text: #ede8f5;
+    --muted: #6b6880;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    height: 100dvh; overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 15% 10%, rgba(124,106,245,0.13) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 35% at 85% 90%, rgba(192,132,252,0.09) 0%, transparent 55%);
+  }
+
+  /* HEADER */
+  .header {
+    padding: calc(var(--safe-top) + 16px) 22px 14px;
+    background: rgba(10,10,15,0.88);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid var(--border);
+    position: relative; z-index: 10; flex-shrink: 0;
+  }
+  .header-row { display: flex; justify-content: space-between; align-items: center; }
+  .header-label { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--accent2); margin-bottom: 3px; }
+  .header-title { font-family: 'Playfair Display', serif; font-size: 24px; line-height: 1.1; }
+  .header-date { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .ring-wrap { position: relative; width: 54px; height: 54px; flex-shrink: 0; }
+  .ring-wrap svg { display: block; transform: rotate(-90deg); }
+  .ring-label {
+    position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--accent2);
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex; background: rgba(10,10,15,0.75);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    position: relative; z-index: 10; flex-shrink: 0;
+  }
+  .tab {
+    flex: 1; padding: 13px 0; background: none; border: none;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+  /* SCROLL */
+  .scroll-area {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: relative; z-index: 1;
+    padding: 20px 20px calc(var(--safe-bottom) + 30px);
+  }
+  .scroll-area::-webkit-scrollbar { display: none; }
+
+  .section-label {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+
+  /* INSTALL BANNER */
+  .install-banner {
+    background: linear-gradient(135deg, rgba(124,106,245,0.15), rgba(192,132,252,0.08));
+    border: 1px solid rgba(124,106,245,0.22);
+    border-radius: 14px; padding: 13px 15px; margin-bottom: 20px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .ib-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .install-text { font-size: 12px; color: #b0a8d8; line-height: 1.6; flex: 1; }
+  .install-text strong { color: var(--accent2); }
+  .install-close {
+    background: none; border: none; color: var(--muted);
+    font-size: 20px; cursor: pointer; flex-shrink: 0; padding: 0; line-height: 1;
+  }
+
+  /* PROGRESS */
+  .progress-bar-wrap { background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; margin-bottom: 22px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+
+  /* HABIT CARDS */
+  .habit-card {
+    display: flex; align-items: center; gap: 13px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 13px 14px;
+    margin-bottom: 9px; cursor: pointer; transition: all 0.22s;
+    width: 100%; text-align: left; -webkit-appearance: none;
+    position: relative;
+  }
+  .habit-card.done {
+    background: linear-gradient(135deg, rgba(124,106,245,0.14), rgba(192,132,252,0.06));
+    border-color: rgba(124,106,245,0.28);
+  }
+  .habit-emoji { font-size: 24px; flex-shrink: 0; }
+  .habit-info { flex: 1; min-width: 0; }
+  .habit-name { font-size: 15px; }
+  .habit-card.done .habit-name { color: #d4c8ff; font-weight: 500; }
+  .habit-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .habit-check {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #fff; transition: all 0.2s;
+  }
+  .habit-card.done .habit-check {
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none;
+  }
+  .habit-delete {
+    position: absolute; right: -7px; top: -7px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #2a1a2a; border: 1px solid rgba(255,80,80,0.35);
+    color: #ff7070; font-size: 14px; line-height: 1;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 5; padding: 0;
+  }
+  .edit-mode .habit-delete { display: flex; }
+  .edit-mode .habit-card { animation: wiggle 0.35s ease infinite alternate; cursor: default; }
+  @keyframes wiggle {
+    from { transform: rotate(-0.7deg); }
+    to   { transform: rotate(0.7deg); }
+  }
+
+  /* ADD HABIT */
+  .add-habit-row {
+    display: flex; gap: 8px; margin-top: 6px; align-items: stretch;
+  }
+  .emoji-pick {
+    width: 52px; height: 52px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 12px;
+    font-size: 22px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .add-inputs { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .add-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    padding: 10px 13px; outline: none; width: 100%;
+    transition: border-color 0.2s;
+  }
+  .add-input:focus { border-color: rgba(124,106,245,0.4); }
+  .add-input::placeholder { color: var(--muted); }
+  .add-btn {
+    width: 52px; height: 52px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 12px; color: #fff;
+    font-size: 24px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* EMOJI DRAWER */
+  .emoji-drawer {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px; margin-top: 8px;
+    display: none; flex-wrap: wrap; gap: 6px;
+  }
+  .emoji-drawer.open { display: flex; }
+  .emoji-opt {
+    font-size: 22px; width: 38px; height: 38px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .edit-toggle {
+    width: 100%; padding: 12px; background: none;
+    border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; margin-bottom: 16px; transition: all 0.2s;
+  }
+  .edit-toggle.active { border-color: rgba(255,80,80,0.3); color: #ff9090; }
+
+  /* MOOD */
+  .mood-row { display: flex; gap: 8px; }
+  .mood-btn {
+    flex: 1; padding: 10px 0; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; font-size: 20px; transition: all 0.2s;
+  }
+  .mood-btn.selected { background: rgba(124,106,245,0.15); border-color: rgba(124,106,245,0.4); }
+  .mood-label { font-size: 9px; color: var(--muted); font-family: 'DM Sans', sans-serif; }
+
+  /* JOURNAL */
+  .journal-date { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  textarea {
+    width: 100%; min-height: 210px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; color: var(--text);
+    font-family: 'Playfair Display', serif; font-size: 15px; line-height: 1.8;
+    padding: 18px; resize: none; outline: none; -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: rgba(124,106,245,0.35); }
+  textarea::placeholder { color: var(--muted); font-style: italic; }
+  .word-count { font-size: 11px; color: #3a384a; text-align: right; padding: 6px 0 10px; }
+  .save-btn {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 14px; color: #fff;
+    font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+    cursor: pointer; transition: all 0.3s;
+  }
+  .save-btn.saved {
+    background: rgba(100,220,130,0.12);
+    border: 1px solid rgba(100,220,130,0.3); color: #78e0a0;
+  }
+
+  /* HISTORY */
+  .history-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 14px 16px; margin-bottom: 12px;
+  }
+  .history-top { display: flex; justify-content: space-between; align-items: center; }
+  .history-date-txt { font-size: 14px; font-weight: 500; }
+  .history-pct { font-size: 18px; font-weight: 700; }
+  .history-sub { font-size: 11px; color: var(--muted); margin: 4px 0 8px; }
+  .history-bar { height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+  .history-bar-fill { height: 100%; border-radius: 2px; }
+  .history-icons { display: flex; gap: 6px; flex-wrap: wrap; }
+  .history-quote {
+    font-family: 'Playfair Display', serif; font-size: 12px;
+    color: var(--muted); font-style: italic; line-height: 1.5;
+    border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;
+  }
+  .empty-state { text-align: center; color: var(--muted); font-size: 14px; margin-top: 50px; line-height: 2.4; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <div>
+      <div class="header-label">Daily Ritual</div>
+      <div class="header-title">My Journal</div>
+      <div class="header-date" id="headerDate"></div>
+    </div>
+    <div class="ring-wrap">
+      <svg width="54" height="54" viewBox="0 0 54 54">
+        <circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
+        <circle id="ringCircle" cx="27" cy="27" r="22" fill="none" stroke="url(#rg)" stroke-width="4"
+          stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"
+          style="transition:stroke-dashoffset 0.5s cubic-bezier(.4,0,.2,1)"/>
+        <defs>
+          <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#7c6af5"/>
+            <stop offset="100%" stop-color="#c084fc"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('today')">Today</button>
+  <button class="tab" onclick="showTab('journal')">Journal</button>
+  <button class="tab" onclick="showTab('history')">History</button>
+</div>
+
+<!-- TODAY -->
+<div class="scroll-area" id="tab-today">
+  <div id="installBanner" class="install-banner">
+    <div class="ib-icon">📲</div>
+    <div class="install-text">
+      <strong>Add to Home Screen</strong> — in Safari tap the Share button (box with arrow) then "Add to Home Screen".
+    </div>
+    <button class="install-close" onclick="dismissBanner()">×</button>
+  </div>
+
+  <div class="section-label">Today's Habits</div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+
+  <div id="habitList"></div>
+
+  <button class="edit-toggle" id="editToggle" onclick="toggleEditMode()">✏️ Edit / Delete Habits</button>
+
+  <div class="add-habit-row">
+    <button class="emoji-pick" id="emojiPickBtn" onclick="toggleEmojiDrawer()">
+      <span id="selectedEmoji">✨</span>
+    </button>
+    <div class="add-inputs">
+      <input class="add-input" id="habitNameInput" placeholder="New habit name…" maxlength="30">
+      <input class="add-input" id="habitGoalInput" placeholder="Goal (e.g. 30 min)" maxlength="25">
+    </div>
+    <button class="add-btn" onclick="addHabit()" title="Add habit">+</button>
+  </div>
+  <div class="emoji-drawer" id="emojiDrawer"></div>
+
+  <hr class="divider">
+  <div class="section-label">Today's Mood</div>
+  <div class="mood-row" id="moodRow"></div>
+</div>
+
+<!-- JOURNAL -->
+<div class="scroll-area" id="tab-journal" style="display:none">
+  <div class="section-label">Today's Entry</div>
+  <div class="journal-date" id="journalDate"></div>
+  <textarea id="journalText" placeholder="Write about your day, thoughts, wins, challenges…" oninput="updateWordCount()"></textarea>
+  <div class="word-count" id="wordCount">0 words</div>
+  <button class="save-btn" id="saveBtn" onclick="saveJournal()">Save Entry</button>
+</div>
+
+<!-- HISTORY -->
+<div class="scroll-area" id="tab-history" style="display:none">
+  <div class="section-label">Past 14 Days</div>
+  <div id="historyList"></div>
+</div>
+
+<script>
+const EMOJI_OPTIONS = ['💧','🏃','🌙','📖','🧘','📵','🥗','☕','💊','🧹','🎸','✍️','🌿','🐕','💪','🚴','🛁','🧠','🎯','❤️','🌅','🍎','📝','🎨','🎧','🧃','🏋️','🤸','🧖','🎻'];
+const DEFAULT_HABITS = [
+  { id:'water',    emoji:'💧', name:'Drink Water',  goal:'8 glasses' },
+  { id:'exercise', emoji:'🏃', name:'Exercise',     goal:'30 min' },
+  { id:'sleep',    emoji:'🌙', name:'Good Sleep',   goal:'8 hours' },
+  { id:'reading',  emoji:'📖', name:'Read',         goal:'20 min' },
+  { id:'meditate', emoji:'🧘', name:'Meditate',     goal:'10 min' },
+  { id:'noscreen', emoji:'📵', name:'Screen Break', goal:'1 hour' },
+];
+const MOODS = [
+  {emoji:'😔',label:'Rough'},{emoji:'😐',label:'Okay'},
+  {emoji:'🙂',label:'Good'},{emoji:'😊',label:'Great'},{emoji:'🤩',label:'Amazing'}
+];
+
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+let habits    = load('hj_habits', DEFAULT_HABITS);
+let logs      = load('hj_logs',   {});
+let editMode  = false;
+let selEmoji  = '✨';
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function getTodayLog() { return logs[todayKey()] || { done:{}, mood:null, journal:'' }; }
+function saveTodayLog(patch) {
+  logs[todayKey()] = { ...getTodayLog(), ...patch };
+  save('hj_logs', logs);
+}
+
+function getStreak(id) {
+  let s = 0, now = new Date();
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    if (logs[key]?.done?.[id]) s++; else break;
+  }
+  return s;
+}
+
+// ── RENDER HEADER ──
+function renderHeader() {
+  const opts = { weekday:'long', month:'long', day:'numeric' };
+  const str = new Date().toLocaleDateString('en-US', opts);
+  document.getElementById('headerDate').textContent = str;
+  document.getElementById('journalDate').textContent = str;
+}
+
+// ── RENDER HABITS ──
+function renderHabits() {
+  const log = getTodayLog();
+  const list = document.getElementById('habitList');
+  list.innerHTML = '';
+
+  habits.forEach(h => {
+    const done = !!log.done?.[h.id];
+    const streak = getStreak(h.id);
+    const card = document.createElement('div');
+    card.className = 'habit-card' + (done ? ' done' : '') + (editMode ? ' edit-mode' : '');
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'habit-delete';
+    delBtn.textContent = '×';
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteHabit(h.id); };
+
+    card.innerHTML = `
+      <div class="habit-emoji">${h.emoji}</div>
+      <div class="habit-info">
+        <div class="habit-name">${h.name}</div>
+        <div class="habit-meta">${h.goal}${streak > 1 ? ` · 🔥 ${streak} day streak` : ''}</div>
+      </div>
+      <div class="habit-check">${done ? '✓' : ''}</div>
+    `;
+    card.appendChild(delBtn);
+    if (!editMode) card.onclick = () => toggleHabit(h.id);
+    list.appendChild(card);
+  });
+
+  const total = habits.length;
+  const doneCount = habits.filter(h => !!log.done?.[h.id]).length;
+  const pct = total ? Math.round((doneCount / total) * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('ringLabel').textContent = pct + '%';
+  document.getElementById('ringCircle').style.strokeDashoffset = 138.2 * (1 - pct / 100);
+}
+
+// ── RENDER MOOD ──
+function renderMood() {
+  const log = getTodayLog();
+  const row = document.getElementById('moodRow');
+  row.innerHTML = '';
+  MOODS.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mood-btn' + (log.mood === i ? ' selected' : '');
+    btn.innerHTML = `${m.emoji}<span class="mood-label">${m.label}</span>`;
+    btn.onclick = () => { saveTodayLog({ mood: i }); renderMood(); };
+    row.appendChild(btn);
+  });
+}
+
+// ── RENDER JOURNAL ──
+function renderJournal() {
+  document.getElementById('journalText').value = getTodayLog().journal || '';
+  updateWordCount();
+}
+
+// ── RENDER HISTORY ──
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const today = todayKey();
+  const days = Object.keys(logs).filter(k => k !== today).sort((a,b) => b.localeCompare(a)).slice(0, 14);
+  if (!days.length) {
+    list.innerHTML = '<div class="empty-state">No history yet.<br>Start tracking today 🌱</div>';
+    return;
+  }
+  list.innerHTML = '';
+  days.forEach(day => {
+    const log = logs[day] || {};
+    const done = habits.filter(h => !!log.done?.[h.id]).length;
+    const pct = habits.length ? Math.round((done / habits.length) * 100) : 0;
+    const color = pct >= 80 ? '#a78bfa' : pct >= 50 ? '#f0c060' : '#3a3850';
+    const moodStr = log.mood != null ? ` · ${MOODS[log.mood]?.emoji}` : '';
+    const d = new Date(day + 'T00:00:00');
+    const dateStr = d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    const card = document.createElement('div');
+    card.className = 'history-card';
+    card.innerHTML = `
+      <div class="history-top">
+        <div class="history-date-txt">${dateStr}</div>
+        <div class="history-pct" style="color:${color}">${pct}%</div>
+      </div>
+      <div class="history-sub">${done}/${habits.length} habits${moodStr}</div>
+      <div class="history-bar"><div class="history-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="history-icons">${habits.map(h=>`<span style="opacity:${log.done?.[h.id]?1:0.15}">${h.emoji}</span>`).join('')}</div>
+      ${log.journal ? `<div class="history-quote">"${log.journal.slice(0,130)}${log.journal.length>130?'…':''}"</div>` : ''}
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ── ACTIONS ──
+function toggleHabit(id) {
+  const log = getTodayLog();
+  saveTodayLog({ done: { ...log.done, [id]: !log.done?.[id] } });
+  renderHabits();
+}
+
+function deleteHabit(id) {
+  habits = habits.filter(h => h.id !== id);
+  save('hj_habits', habits);
+  renderHabits();
+  renderHistory();
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('editToggle');
+  btn.textContent = editMode ? '✅ Done Editing' : '✏️ Edit / Delete Habits';
+  btn.classList.toggle('active', editMode);
+  renderHabits();
+}
+
+function addHabit() {
+  const nameEl = document.getElementById('habitNameInput');
+  const goalEl = document.getElementById('habitGoalInput');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const goal = goalEl.value.trim() || 'Daily';
+  habits.push({ id: 'h_' + Date.now(), emoji: selEmoji, name, goal });
+  save('hj_habits', habits);
+  nameEl.value = ''; goalEl.value = '';
+  renderHabits();
+}
+
+function saveJournal() {
+  saveTodayLog({ journal: document.getElementById('journalText').value });
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = '✓ Saved'; btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = 'Save Entry'; btn.classList.remove('saved'); }, 2000);
+  renderHistory();
+}
+
+function updateWordCount() {
+  const text = document.getElementById('journalText').value.trim();
+  const w = text ? text.split(/\s+/).length : 0;
+  document.getElementById('wordCount').textContent = `${w} word${w !== 1 ? 's' : ''}`;
+}
+
+// ── EMOJI DRAWER ──
+function buildEmojiDrawer() {
+  const drawer = document.getElementById('emojiDrawer');
+  EMOJI_OPTIONS.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-opt'; btn.textContent = e;
+    btn.onclick = () => {
+      selEmoji = e;
+      document.getElementById('selectedEmoji').textContent = e;
+      drawer.classList.remove('open');
+    };
+    drawer.appendChild(btn);
+  });
+}
+function toggleEmojiDrawer() {
+  document.getElementById('emojiDrawer').classList.toggle('open');
+}
+
+// ── TABS ──
+function showTab(name) {
+  ['today','journal','history'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['today','journal','history'][i] === name);
+  });
+  if (name === 'history') renderHistory();
+}
+
+// ── INSTALL BANNER ──
+function dismissBanner() {
+  document.getElementById('installBanner').style.display = 'none';
+  localStorage.setItem('hj_banner_dismissed', '1');
+}
+
+// ── INIT ──
+if (localStorage.getItem('hj_banner_dismissed')) {
+  document.getElementById('installBanner').style.display = 'none';
+}
+document.getElementById('habitNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addHabit(); });
+buildEmojiDrawer();
+renderHeader();
+renderHabits();
+renderMood();
+renderJournal();
+</script>
+</body>
+</html>
